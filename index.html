@@ -1,0 +1,231 @@
+<!-- Te peguei malandro! -->
+<!doctype html>
+<html>
+  <head>
+    <title>Socket Jones Chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+      .cursorSocket {
+            width: auto;
+            height: auto;
+            padding: 5px;
+            box-shadow: 2px 2px 8px #c3c3c3;
+            border-radius: 5px;
+            display: block;
+            background: #c3c3c3;
+            position: absolute;
+      }
+      .pixel {
+            width: auto;
+            height: 5px;
+            width: 5px;
+            display: block;
+            position: absolute;
+            border-radius: 4px;
+      }
+      .chat {
+        left:10px;
+        top:10px;
+        position: absolute;
+        width: 200px;
+        height: auto;
+        border:1px solid #c3c3c3;
+        border-radius: 3px;
+        box-shadow: 2px 2px 8px #c3c3c3;
+      }
+        .chat .mensagens {
+            max-height: 400px;
+            overflow-y:auto;
+        }
+        .chat input {
+            margin: 2px;
+            padding: 3px;
+        }
+        .chat button {
+            margin: 2px;
+            padding: 3px;
+        }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+        var socket = io();
+        var usuario;
+        var cor;
+
+        // sessionStorage.setItem('enviarDados',false);
+
+        function corAleatoria() {
+            var letras = '0123456789ABCDEF'.split('');
+            var cor = '#';
+            for (var i = 0; i < 6; i++ ) {
+                cor += letras[Math.floor(Math.random() * 16)];
+            }
+            return cor;
+        }
+
+        function pegaUsuario() {
+              var user = prompt("Nome:", "");
+          
+              if (user!=="") {
+                sessionStorage.setItem('usuario',user);
+                cor=corAleatoria();
+                sessionStorage.setItem('cor',cor);
+                usuario=user;
+
+              } else {
+                window.location.href="/";
+              }
+        }
+
+        
+        function mouseTrack() {
+                    
+            var currentMousePos = { x: -1, y: -1 };
+            
+
+            $(document).mousemove(function(event) {
+
+                currentMousePos.x = event.pageX;
+                currentMousePos.y = event.pageY;
+                // console.log(currentMousePos.x+"="+currentMousePos.y);
+                
+                // coordenadas = currentMousePos.x+"="+currentMousePos.y;
+                enviarDados = sessionStorage.getItem('enviarDados');
+
+                coordenadas = {
+                    nome : usuario,
+                    cor : cor,
+                    x : currentMousePos.x,
+                    y : currentMousePos.y,
+                    enviarDados : enviarDados
+                };
+
+                // console.log(coordenadas);
+
+                socket.emit('desenho', coordenadas);
+                return false;
+            });
+
+        }
+
+
+        function enviarMsg() {
+
+            texto = $('input.msg').val();
+            cor = sessionStorage.getItem('cor');
+            if (texto!=="") {
+                mensagem = {
+                    nome : usuario,
+                    cor: cor,
+                    texto : texto
+                }
+                // console.log(mensagem);
+
+                socket.emit('mensagen', mensagem);
+                $('input.msg').val("");
+                $('input.msg').focus();
+                return false
+
+            }
+        }
+
+        $(document).ready(function() {
+      
+            pegaUsuario();
+
+            mouseTrack();
+                
+            $(document)
+                .mousedown(function() {
+                    sessionStorage.setItem('enviarDados',true);
+                    console.log("enviar");
+                })
+                .mouseup(function() {
+                    sessionStorage.setItem('enviarDados',false);
+                    console.log("parar");
+                });
+            
+            $('button.enviar').click(function(){
+                enviarMsg();
+            });
+
+            $("input.msg").keypress(function(event) {
+                if (event.which == 13) {
+                    event.preventDefault();
+                    enviarMsg();     
+                }
+            });
+
+              /*
+              $('form').submit(function(){
+
+                mensagem = sessionStorage.getItem('usuario=')+": "+$('#m').val();
+                // Envia dados para socket
+                socket.emit('chat message', mensagem);
+                
+                $('#m').val('');
+                
+                return false;
+              });
+              */
+
+              // Recebe o Retorno dos demais Sockets
+              // controle=0;
+            socket.on('desenho', function(msg){
+
+            // console.log(msg.cor);
+                if (msg.enviarDados=="true") {
+                    nome = msg.nome;
+                
+                    x = msg.x;
+                    y = msg.y;
+
+                    xNome = msg.x+40;
+                    yNome = msg.y+40;
+
+                    $('div.cursorSocket.principal.'+nome).remove();
+
+                    cursorVisitante = "<div class='cursorSocket principal "+nome+"' style='left:"+xNome+"px;top:"+yNome+"px;background:"+msg.cor+"'>"+nome+"</div>";
+
+                    pixel = "<div class='pixel' style='left:"+x+"px;top:"+y+"px;background:"+msg.cor+"'></div>";
+
+                    $('body').append(cursorVisitante);
+                    $('body').append(pixel);
+                }
+
+            });
+
+            socket.on('mensagen', function(json){
+
+                linhaChat = "<li style='background:"+json.cor+"'>"+json.nome+": "+json.texto+"</li>";
+                $('ul#messages').append(linhaChat);
+
+                $('.mensagens').scrollTop($('.mensagens')[0].scrollHeight);
+                console.log("recebendo mensagen");
+            });
+
+        });
+      
+    </script>
+
+  </head>
+  <body>
+        <div class="chat">
+            
+            <div class="mensagens">
+                <ul id="messages"></ul>
+            </div>
+
+            <input type="text" class="msg" />
+            <button class="enviar">Enviar</button>
+            
+        </div>
+  </body>
+
+</html>
