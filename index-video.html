@@ -1,0 +1,93 @@
+<!-- Te peguei malandro! -->
+<!doctype html>
+<html>
+  <head>
+    <title>Socket Jones Chat</title>
+
+    <script src="/socket.io/socket.io.js"></script>
+    
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+
+
+        controle=0;
+        window.addEventListener("DOMContentLoaded", function() {
+            // Pega os elementos, cria as configurações
+            
+            /*            
+            var canvas = document.getElementById("canvas"),
+                context = canvas.getContext("2d");
+            */
+
+            var video = document.getElementById("video"),
+                videoObj = { "video": true },
+                errBack = function(error) {
+                    console.log("Erro na captura do vídeo: ", error.code); 
+                };
+
+
+            // Colocar para rodar os vido listeners
+            if(navigator.getUserMedia) { // padrao
+                navigator.getUserMedia(videoObj, function(stream) {
+                    video.src = stream;
+                    video.play();
+
+
+
+                }, errBack);
+            } else if(navigator.webkitGetUserMedia) { // WebKit
+                navigator.webkitGetUserMedia(videoObj, function(stream){
+                    video.src = window.URL.createObjectURL(stream);
+                    video.play();
+
+
+                    console.log("aqui");
+
+                    // Identificar(); 
+
+                }, errBack);
+            }
+            else if(navigator.mozGetUserMedia) { // Firefox
+                navigator.mozGetUserMedia(videoObj, function(stream){
+                    // video.src = window.URL.createObjectURL(stream);
+                    // video.play();
+
+                    console.log("aqui FF");
+                    socket.emit('video', stream);
+
+                }, errBack);
+            }
+
+        }, false);
+
+
+        var socket = io();
+       
+    
+
+        $(document).ready(function() {
+      
+            
+            setTimeout(function(){
+                socket.on('video', function(json){
+                    video = document.getElementById("video");
+                    video.src = window.URL.createObjectURL(json);
+                    video.play();
+                    //console.log(json);
+                });    
+            },3000);      
+            
+
+
+        });
+      
+    </script>
+
+  </head>
+  <body>
+
+    <video id="video" width="800" height="600" autoplay></video>
+
+  </body>
+
+</html>
